@@ -1,30 +1,33 @@
 ﻿<?xml version='1.0' encoding='utf-8'?>
 <SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="DevTimeTracker.Properties" GeneratedClassName="Settings">
-  <Profiles />
-  <Settings>
-    <Setting Name="AfkEnabled" Type="System.Boolean" Scope="User">
-      <Value Profile="(Default)">True</Value>
-    </Setting>
-    <Setting Name="LockScreenEnabled" Type="System.Boolean" Scope="User">
-      <Value Profile="(Default)">True</Value>
-    </Setting>
-    <Setting Name="AfkDelayMilliseconds" Type="System.Int32" Scope="User">
-      <Value Profile="(Default)">300000</Value>
-    </Setting>
-    <Setting Name="ResetDailyEnabled" Type="System.Boolean" Scope="User">
-      <Value Profile="(Default)">True</Value>
-    </Setting>
-    <Setting Name="ResetDailyAtHour" Type="System.Int32" Scope="User">
-      <Value Profile="(Default)">3</Value>
-    </Setting>
-    <Setting Name="AutoStart" Type="System.Boolean" Scope="User">
-      <Value Profile="(Default)">True</Value>
-    </Setting>
-    <Setting Name="TimeFormat" Type="System.String" Scope="User">
-      <Value Profile="(Default)">H:mm:ss</Value>
-    </Setting>
-    <Setting Name="LastShiftTicks" Type="System.Int64" Scope="User">
-      <Value Profile="(Default)">0</Value>
-    </Setting>
-  </Settings>
+	<Profiles />
+	<Settings>
+		<Setting Name="AfkEnabled" Type="System.Boolean" Scope="User">
+			<Value Profile="(Default)">True</Value>
+		</Setting>
+		<Setting Name="LockScreenEnabled" Type="System.Boolean" Scope="User">
+			<Value Profile="(Default)">True</Value>
+		</Setting>
+		<Setting Name="AfkDelayMilliseconds" Type="System.Int32" Scope="User">
+			<Value Profile="(Default)">300000</Value>
+		</Setting>
+		<Setting Name="ResetDailyEnabled" Type="System.Boolean" Scope="User">
+			<Value Profile="(Default)">True</Value>
+		</Setting>
+		<Setting Name="ResetDailyAtHour" Type="System.Int32" Scope="User">
+			<Value Profile="(Default)">3</Value>
+		</Setting>
+		<Setting Name="AutoStart" Type="System.Boolean" Scope="User">
+			<Value Profile="(Default)">True</Value>
+		</Setting>
+		<Setting Name="TimeFormat" Type="System.String" Scope="User">
+			<Value Profile="(Default)">H:mm:ss</Value>
+		</Setting>
+		<Setting Name="LastShiftTicks" Type="System.Int64" Scope="User">
+			<Value Profile="(Default)">0</Value>
+		</Setting>
+		<Setting Name="ShowNotifications" Type="System.Boolean" Scope="User">
+			<Value Profile="(Default)">True</Value>
+		</Setting>
+	</Settings>
 </SettingsFile>

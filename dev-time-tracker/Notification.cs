@@ -23,6 +23,7 @@ namespace DevTimeTracker
 
         internal void ShowNotificationBalloon(string content)
         {
+            if (!Properties.Settings.Default.ShowNotifications) return;
             NotificationIcon.BalloonTipText = content;
             NotificationIcon.ShowBalloonTip(3000);
         }
@@ -33,17 +34,32 @@ namespace DevTimeTracker
             NotificationIcon.Dispose();
         }
 
-        internal static string GetOnClickContent(string currentTime)
+        internal static string GetOnActiveContent(string currentTime)
         {
-            var currently = $"{currentTime} currently logged";
+            var currently = $"Logged: {currentTime}";
             var lastShift = $"Last time: {GetLastShift}";
+            return $"{currently}\n{lastShift}\nClick to suspend.";
+        }
 
-            return $"{currently}\n{lastShift}";
+        internal static string GetOnSuspendedContent(string currentTime)
+        {
+            var currently = $"Suspended on {currentTime}";
+            return $"{currently}\nClick to resume.";
         }
 
         internal static string GetOnResetContent()
         {
-            return "New day! Time has been reset.";
+            return "Time has been reset.";
+        }
+
+        internal static string GetOnUserInactive()
+        {
+            return "Suspended due to inactivity.";
+        }
+
+        internal static string GetOnUserActive()
+        {
+            return "Detected activity. Resuming...";
         }
     }
 }

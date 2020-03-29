@@ -37,6 +37,8 @@ namespace DevTimeTracker
             chkAfk.Checked = Properties.Settings.Default.AfkEnabled;
             numAfkDelay.Value = Math.Floor(Properties.Settings.Default.AfkDelayMilliseconds / 60000M);
             numAfkDelay.Enabled = chkAfk.Checked;
+
+            chkShowNotifications.Checked = Properties.Settings.Default.ShowNotifications;
         }
 
         internal void SaveLastShift(DateTime time)
@@ -86,6 +88,12 @@ namespace DevTimeTracker
         private void numResetDailyAt_ValueChanged(object sender, EventArgs e)
         {
             Properties.Settings.Default.ResetDailyAtHour = (int)numResetDailyAt.Value;
+            Properties.Settings.Default.Save();
+        }
+
+        private void chkShowNotifications_CheckedChanged(object sender, EventArgs e)
+        {
+            Properties.Settings.Default.ShowNotifications = chkShowNotifications.Checked;
             Properties.Settings.Default.Save();
         }
     }

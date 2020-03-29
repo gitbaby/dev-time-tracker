@@ -11,25 +11,35 @@ namespace DevTimeTracker
 {
     internal static class Program
     {
-        private const string _title = "Dev Time Tracker";
-        private const long _dayTotalTicks = 864000000000;
+        private const string _title = "Active Time Tracker";
 
         private static SessionSwitchReason[] unlockedReasons;
         private static SessionSwitchReason[] lockedReasons;
-        private static bool _isSuspendForced;
+        private static bool _isManuallySuspended;
         private static bool _isRunning;
-        private static bool _wasDailyReset;
         private static System.Timers.Timer _timer;
         private static DateTime _time;
-        private static DateTime _date;
+        private static DateTime _nextReset;
         private static Menus _menus;
         private static Notification _notification;
         private static frmSettings _frmSettings;
 
-        private static System.Drawing.Icon GetNotificationIcon { get => _isRunning ? Properties.Resources.systray : Properties.Resources.systray_inactive; }
-        private static string GetTooltipTitle { get => _isRunning ? GetTime : _title; }
-        private static string GetTime { get => _time.ToTimeFormat(); }
-        private static bool IsDailyResetNeeded { get => Properties.Settings.Default.ResetDailyEnabled && DateTime.Now.AddTicks(-_date.Ticks).Ticks >= _dayTotalTicks; }
+        private static System.Drawing.Icon GetNotificationIcon
+        {
+            get => _isRunning ? Properties.Resources.systray : Properties.Resources.systray_inactive;
+        }
+        private static string GetTooltipTitle
+        {
+            get => _isRunning ? Notification.GetOnActiveContent(GetTime) : Notification.GetOnSuspendedContent(GetTime);
+        }
+        private static string GetTime
+        {
+            get => _time.ToTimeFormat();
+        }
+        private static bool IsDailyResetNeeded
+        {
+            get => Properties.Settings.Default.ResetDailyEnabled && DateTime.Now > _nextReset;
+        }
 
         [STAThread]
         private static void Main()
@@ -45,6 +55,7 @@ namespace DevTimeTracker
                     CreateMenu();
                     CreateIcon();
                     CreateTimer();
+                    SetNextReset();
                     BindToLockScreen();
                     BindToPowerMode();
                     BindToSessionEnding();
@@ -64,8 +75,7 @@ namespace DevTimeTracker
                 Interval = 1000
             };
 
-            _timer.Elapsed += new ElapsedEventHandler(timer_Elapsed);
-            _date = DateTime.Now;
+            _timer.Elapsed += new ElapsedEventHandler(OnTimerElapsed);
 
             if (Properties.Settings.Default.AutoStart)
             {
@@ -75,6 +85,17 @@ namespace DevTimeTracker
             MenuAndIconVisibility();
         }
 
+        private static void SetNextReset()
+        {
+            var now = DateTime.Now;
+            var diffHours = Properties.Settings.Default.ResetDailyAtHour - now.Hour;
+            _nextReset = now.AddHours(diffHours).AddMinutes(-now.Minute).AddSeconds(-now.Second);
+            if (diffHours < 0)
+            {
+                _nextReset = _nextReset.AddDays(1);
+            }
+        }
+
         private static void ResetTime(bool manual = false)
         {
             if (!manual)
@@ -82,6 +103,7 @@ namespace DevTimeTracker
                 _notification.ShowNotificationBalloon(Notification.GetOnResetContent());
                 ValidFormInstance();
                 SaveLastShift();
+                SetNextReset();
             }
 
             _time = new DateTime();
@@ -97,11 +119,11 @@ namespace DevTimeTracker
         {
             var menusDictionary = new Dictionary<MenuEnum, EventHandler>()
             {
-                { MenuEnum.Suspend, new EventHandler(mnuSuspend_Click) },
-                { MenuEnum.Resume, new EventHandler(mnuResume_Click) },
-                { MenuEnum.Reset, new EventHandler(mnuReset_Click) },
-                { MenuEnum.Settings, new EventHandler(mnuSettings_Click) },
-                { MenuEnum.Exit, new EventHandler(mnuExit_Click) },
+                { MenuEnum.Suspend, new EventHandler(OnMenuSuspendClick) },
+                { MenuEnum.Resume, new EventHandler(OnMenuResumeClick) },
+                { MenuEnum.Reset, new EventHandler(OnMenuResetClick) },
+                { MenuEnum.Settings, new EventHandler(OnMenuSettingsClick) },
+                { MenuEnum.Exit, new EventHandler(OnMenuExitClick) },
             };
 
             _menus = new Menus(menusDictionary);
@@ -109,7 +131,7 @@ namespace DevTimeTracker
 
         private static void CreateIcon()
         {
-            _notification = new Notification(_menus.Menu, notificationIcon_Click, _title);
+            _notification = new Notification(_menus.Menu, OnNotificationIconClick, _title);
         }
 
         private static void AddTime()
@@ -125,47 +147,45 @@ namespace DevTimeTracker
 
         private static void CheckUserActivity()
         {
-            if (_isSuspendForced || !Properties.Settings.Default.AfkEnabled) return;
+            if (_isManuallySuspended || !Properties.Settings.Default.AfkEnabled) return;
 
             var lastActivityLogMilliseconds = NativeMethods.GetIdleTime();
             if (lastActivityLogMilliseconds > Properties.Settings.Default.AfkDelayMilliseconds)
             {
-                Suspend();
+                if (Suspend())
+                {
+                    _notification.ShowNotificationBalloon(Notification.GetOnUserInactive());
+                }
             }
             else
             {
-                Resume();
+                if (Resume())
+                {
+                    if (_time.Minute > 0) _notification.ShowNotificationBalloon(Notification.GetOnUserActive());
+                }
             }
         }
 
-        private static void CheckResetTimerDaily()
+        private static bool Suspend(bool manual = false)
         {
-            if (!Properties.Settings.Default.ResetDailyEnabled) return;
-
-            var now = DateTime.Now;
-            var resetAtHour = Properties.Settings.Default.ResetDailyAtHour;
-
-            if (_wasDailyReset = (_wasDailyReset && now.Hour >= resetAtHour)) return;
- 
-            if (now.Hour == resetAtHour && now.Minute == 0 && now.Second == 0)
-            {
-                ResetTime();
-                _wasDailyReset = true;
-            }
-        }
-
-        private static void Suspend()
-        {
-            if (!_isRunning) return;
+            if (!_isRunning) return false;
+            if (manual) _isManuallySuspended = true;
             _isRunning = false;
             MenuAndIconVisibility();
+            return true;
         }
 
-        private static void Resume()
+        private static bool Resume(bool manual = false)
         {
-            if (_isRunning) return;
+            if (_isRunning) return false;
+            if (_isManuallySuspended)
+            {
+                if (!manual) return false;
+                _isManuallySuspended = false;
+            }
             _isRunning = true;
             MenuAndIconVisibility();
+            return true;
         }
 
         private static void MenuAndIconVisibility()
@@ -186,13 +206,6 @@ namespace DevTimeTracker
             }
         }
 
-        private static void DailyResetTime()
-        {
-            ResetTime();
-            _date = DateTime.Now;
-            _wasDailyReset = true;
-        }
-
         private static void SystemEvents_SessionSwitch(object sender, SessionSwitchEventArgs e)
         {
             if (!Properties.Settings.Default.LockScreenEnabled) return;
@@ -207,7 +220,7 @@ namespace DevTimeTracker
 
                 if (IsDailyResetNeeded)
                 {
-                    DailyResetTime();
+                    ResetTime();
                 }
             }
         }
@@ -226,7 +239,7 @@ namespace DevTimeTracker
 
                 if (IsDailyResetNeeded)
                 {
-                    DailyResetTime();
+                    ResetTime();
                 }
             }
         }
@@ -237,11 +250,10 @@ namespace DevTimeTracker
             ResetTime();
         }
 
-        private static void timer_Elapsed(object sender, EventArgs e)
+        private static void OnTimerElapsed(object sender, EventArgs e)
         {
             AddTime();
             DisplayTime();
-            CheckResetTimerDaily();
 
             if (_time.Second == 0)
             {
@@ -249,14 +261,21 @@ namespace DevTimeTracker
             }
         }
 
-        private static void notificationIcon_Click(object sender, EventArgs e)
+        private static void OnNotificationIconClick(object sender, EventArgs e)
         {
             if (((MouseEventArgs)e).Button != MouseButtons.Left) return;
-            _notification.ShowNotificationBalloon(Notification.GetOnClickContent(GetTime));
+            if (_isRunning)
+            {
+                Suspend(true);
+            }
+            else
+            {
+                Resume(true);
+            }
         }
 
         #region Menu Click Handlers
-        private static void mnuExit_Click(object sender, EventArgs e)
+        private static void OnMenuExitClick(object sender, EventArgs e)
         {
             ValidFormInstance();
             SaveLastShift();
@@ -265,27 +284,25 @@ namespace DevTimeTracker
             Application.Exit();
         }
 
-        private static void mnuSettings_Click(object sender, EventArgs e)
+        private static void OnMenuSettingsClick(object sender, EventArgs e)
         {
             ValidFormInstance();
             _frmSettings.Show();
         }
 
-        private static void mnuReset_Click(object sender, EventArgs e)
+        private static void OnMenuResetClick(object sender, EventArgs e)
         {
             ResetTime(true);
         }
 
-        private static void mnuSuspend_Click(object sender, EventArgs e)
+        private static void OnMenuSuspendClick(object sender, EventArgs e)
         {
-            _isSuspendForced = true;
-            Suspend();
+            Suspend(true);
         }
 
-        private static void mnuResume_Click(object sender, EventArgs e)
+        private static void OnMenuResumeClick(object sender, EventArgs e)
         {
-            _isSuspendForced = false;
-            Resume();
+            Resume(true);
         }
         #endregion
 
