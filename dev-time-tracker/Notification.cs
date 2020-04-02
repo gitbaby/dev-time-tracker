@@ -43,8 +43,9 @@ namespace DevTimeTracker
 
         internal static string GetOnSuspendedContent(string currentTime)
         {
-            var currently = $"Suspended on {currentTime}";
-            return $"{currently}\nClick to resume.";
+            var currently = $"Suspended on: {currentTime}";
+            var lastShift = $"Last time: {GetLastShift}";
+            return $"{currently}\n{lastShift}\nClick to resume.";
         }
 
         internal static string GetOnResetContent()
